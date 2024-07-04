@@ -5,103 +5,110 @@
 #include "kviz.h"
 #include "sqlite3.h"
 
-static int callback(void* data, int argc, char** argv, char** azColName)
+
+static int ucitajKviz(void* pok, int argc, char** argv, char** azColName)
 {
-    int i;
-    static int j = 0;
-    std::string odg;
-    static int tacni_odg = 0;
-    //std::cout << data << std::endl;
-    std::cout << "Pitanje " << j + 1 << ":" << std::endl;
-    j++;
-    //fprintf(stderr, "%s: ", (const char*)data);
-    
-    //Pitanje* pitanje = new Pitanje(argv[0], argv[1], argv[2], odgovori, argv[7]);
-    //std::string odgovori[4] = {argv[3], argv[4], argv[5], argv[6]};
-    //Pitanje* pitanje = new Pitanje(atoi(argv[0]), atoi(argv[1]), argv[2], odgovori, atoi(argv[7]));
+    std::string odgovori[4] = {argv[3], argv[4], argv[5], argv[6]};
+    Pitanje p(atoi(argv[0]), atoi(argv[1]), argv[2], odgovori, atoi(argv[7]));
 
-    //std::cout << "Tacan odgovor: " << pitanje->getTacanOdgovor() << std::endl;
-    //int id = atoi(argv[0]);
-    //std::cout << id << std::endl;
-    
-    for (i = 0; i < argc-1; i++) {
-        printf("%s\n", argv[i] ? argv[i] : "NULL");
-        
-        
-    }
-
-    
-    printf("\n");
-    std::cout << "Vas odgovor: ";
-    std::cin >> odg;
-    std::cout << "\n";
-    //printf("%s\n", argv[argc-1]);
-    if (odg == argv[argc-1])
-    {
-        tacni_odg++;
-    }
-
-    if(j == 7)
-    {
-        std::cout << (const char*)data << " je pogodio " << tacni_odg << "/7" << " pitanja" << std::endl;
-    }
-
-    /*std::cout << "tacni odgovori:" << tacni_odg << std::endl;
-
-    if (argc == 6)
-    {
-        std::cout << tacni_odg << "/7 tacnih odgovora\n";
-    }*/
+    reinterpret_cast<std::vector<Pitanje>*>(pok)->emplace_back(p);
 
     return 0;
 }
 
-int izborKviza()
+
+class Igra
 {
+    std::string ime;
+    sqlite3 *db;
+    char *zErrMsg = 0;
+    int rc;
+    const char *sql;
+    std::vector<Pitanje> kolekcijaPitanja;
     int br_kviza;
+    int odg;
+    int tacni_odg = 0;
 
-    std::cout << "\nTrenutno dostupni kvizovi:" << std::endl;
-    std::cout << "\t1. Formula 1" << std::endl;
-    std::cout << "\t2. Filmovi" << std::endl;
-    std::cout << "\t3. Muzika" << std::endl;
-    std::cout << "\nIzaberite zeljeni kviz: ";
-    std::cin >> br_kviza;
-    std::cout << "\n";
+public:
 
-    return br_kviza;
-}
+    void izborKviza()
+    {
+        std::cout << "Unesite vase ime: ";
+        std::cin >> ime;
+
+        std::cout << "\nTrenutno dostupni kvizovi:" << std::endl;
+        std::cout << "\t1. Formula 1" << std::endl;
+        std::cout << "\t2. Filmovi" << std::endl;
+        std::cout << "\t3. Muzika" << std::endl;
+        std::cout << "\nIzaberite zeljeni kviz: ";
+        std::cin >> br_kviza;
+        std::cout << "\n";
+
+        ucitavanje();
+    }
+
+    void ucitavanje()
+    {
+        
+        switch (br_kviza)
+        {
+            case 1:
+                //sql = "SELECT TekstPitanja, Odgovor1, Odgovor2, Odgovor3, Odgovor4, TacanOdgovor from pitanje where IDKviza=1";
+                sql = "SELECT * from pitanje where IDKviza=1";
+                std::cout << "Formula 1\n\n";
+                break;
+            case 2:
+                //sql = "SELECT TekstPitanja, Odgovor1, Odgovor2, Odgovor3, Odgovor4, TacanOdgovor from pitanje where IDKviza=2";
+                sql = "SELECT * from pitanje where IDKviza=2";
+                std::cout << "Filmovi\n\n";
+                break;
+            case 3:
+                //sql = "SELECT TekstPitanja, Odgovor1, Odgovor2, Odgovor3, Odgovor4, TacanOdgovor from pitanje where IDKviza=3";
+                sql = "SELECT * from pitanje where IDKviza=3";
+                std::cout << "Muzika\n\n";
+                break;
+        }
+
+        rc = sqlite3_open("kviz.db", &db);
+
+        rc = sqlite3_exec(db, sql, &ucitajKviz, static_cast<void*>(&kolekcijaPitanja), &zErrMsg);
+
+        odgovaranje(kolekcijaPitanja, ime);
+        
+        sqlite3_close(db);
+    }
+
+    void odgovaranje(std::vector<Pitanje>& pitanje, std::string ime)
+    {
+        for(int i = 0; i < pitanje.size(); i++)
+        {
+            std::cout << "Pitanje " << i+1 << ":" << std::endl;
+            std::cout << pitanje[i].getPitanje() << "\n\n";
+            for (int j = 0; j < 4; j++)
+            {
+                std::cout << pitanje[i].getOdgovor(j) << std::endl;
+            }
+            std::cout << "\nVas odgovor: ";
+            std::cin >> odg;
+            std::cout << "\n";
+            if(odg == pitanje[i].getTacanOdgovor())
+            {
+                tacni_odg++;
+            }
+        }
+        std::cout << ime << " je pogodio " << tacni_odg << "/" << pitanje.size() << " pitanja." << std::endl;
+    }
+};
 
 int main(int argc, char** argv)
 {
+    Igra kviz;
+    kviz.izborKviza();
 
-    /*std::string proba[4] = {"a", "b", "c", "d"};
-    Pitanje pitanje1(1, 1, "pitanje", proba, 2);
-    Pitanje pitanje2(pitanje1);
-    std::vector<Pitanje> kolekcijaPitanja;
-    kolekcijaPitanja.emplace_back(pitanje1);
-    kolekcijaPitanja.emplace_back(pitanje2);
-    Kviz kviz1(1, "kviz", kolekcijaPitanja);*/
-
-    std::string ime;
-
-    std::cout << "Unesite vase ime: ";
-    std::cin >> ime;
-
-    //Pitanje* pitanje = new Pitanje;
-
-    sqlite3 *db;
-   char *zErrMsg = 0;
-   int rc;
-   const char *sql;
-   const char *sql1;
-   int i = 0;
-   //const char* data = "Callback function called";
-   //const char* data = (const char*)pitanje;
-   const char* data = ime.c_str();
 
 
    /* Open database */
-   rc = sqlite3_open("kviz.db", &db);
+   //rc = sqlite3_open("kviz.db", &db);
    
    /*if( rc ) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
@@ -111,7 +118,7 @@ int main(int argc, char** argv)
    }*/
 
    /* Create SQL statement */
-   switch (izborKviza())
+   /*switch (izborKviza())
    {
     case 1:
         sql = "SELECT TekstPitanja, Odgovor1, Odgovor2, Odgovor3, Odgovor4, TacanOdgovor from pitanje where IDKviza=1";
@@ -122,15 +129,14 @@ int main(int argc, char** argv)
     case 3:
         sql = "SELECT TekstPitanja, Odgovor1, Odgovor2, Odgovor3, Odgovor4, TacanOdgovor from pitanje where IDKviza=3";
         break;
-   }
+   }*/
    
    //sql = "SELECT * from pitanje";
 
    /* Execute SQL statement */
-   rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
+   //rc = sqlite3_exec(db, sql, callback, (void*)data, &zErrMsg);
 
     
-   
    /*if( rc != SQLITE_OK ) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
@@ -138,24 +144,8 @@ int main(int argc, char** argv)
       fprintf(stdout, "Operation done successfully\n");
    }*/
 
-    
+   //sqlite3_close(db);
 
-   sqlite3_close(db);
    return 0;
-
-    /*//Kviz kviz2(kviz1);
-    //std::cout << "ID pitanja: " << pitanje2.getIDPitanja() << std::endl;
-    std::cout << "ID kviza: " << kviz1.getIDKviza() << std::endl;
-    std::cout << "Naziv kviza: " << kviz1.getNazivKviza() << std::endl;
-    for(int i = 0; i < kolekcijaPitanja.size(); i++)
-    {
-        std::cout << "Pitanja: " << kolekcijaPitanja[i].getPitanje() << std::endl;
-    }
-    /*for(int i = 0; i < 4; i++)
-    {
-        std::cout << "Odgovor " << i+1 << ": " << pitanje2.getOdgovor(i) << std::endl;
-    }
-    std::cout << "Tacan odgovor: " << pitanje2.getTacanOdgovor() << std::endl;*/
-    
     
 }
