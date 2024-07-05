@@ -38,8 +38,7 @@ class Igra
     char *zErrMsg = 0;
     int rc;
     std::string sql;
-    Kviz kviz;
-    Kviz* ptrKviz = &kviz;
+    Kviz* ptrKviz;
     std::vector<Pitanje> kolekcijaPitanja;
     std::string br_kviza;
     int odg;
@@ -68,6 +67,8 @@ public:
     void ucitavanje()
     {
         sql = "SELECT * from kviz where IDKviza=" + br_kviza;
+
+        ptrKviz = new Kviz;
         
         rc = sqlite3_exec(db, sql.c_str(), &ucitajKviz, static_cast<void*>(ptrKviz), &zErrMsg);
         
@@ -104,6 +105,8 @@ public:
             }
         }
         std::cout << ime << " je pogodio " << tacni_odg << "/" << ptrKviz->getKolekcijaPitanja().size() << " pitanja." << std::endl;
+
+        delete ptrKviz;
     }
 };
 
