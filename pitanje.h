@@ -1,4 +1,3 @@
-#include <iostream>
 #ifndef PITANJE_H
 #define PITANJE_H
 
